@@ -594,7 +594,12 @@ class NewsFeedViewModel {
         })
     }
     
-<<<<<<< HEAD
+    public var didViewRecently: Bool {
+        let secsSinceViewed = self.viewedDate.distance(to: NSDate.now)
+        // check if the feed was opened in the last 10 seconds.
+        return secsSinceViewed < 10.0
+    }
+    
     func updateCurrentRange(newPagination: Pagination?) {
         guard let newPagination = newPagination else { return }
         guard let nextPage = newPagination.next else { 
@@ -623,12 +628,6 @@ class NewsFeedViewModel {
         } else if (newRange > self.nextPageRange!) {
             self.previousPageRange = newRange
         }
-    }
-    
-    public var didViewRecently: Bool {
-        let secsSinceViewed = self.viewedDate.distance(to: NSDate.now)
-        // check if the feed was opened in the last 10 seconds.
-        return secsSinceViewed < 10.0
     }
 }
 

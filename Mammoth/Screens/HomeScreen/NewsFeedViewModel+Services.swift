@@ -121,7 +121,6 @@ extension NewsFeedViewModel {
             // Fetch newer posts
             case .previousPage:
                 if let firstId = await MainActor.run(body: { [weak self] in return self?.newestItemId(forType: currentType) }) {
-                    
                     let items: [NewsFeedListItem]
 
                     if (self.makePaginatedRequest) {
@@ -134,7 +133,7 @@ extension NewsFeedViewModel {
                         items = requestItems
                         self.cursorId = requestCursorId
                     }
-                    
+
                     // only remove mutes and blocks in remote feeds.
                     let newItems: [NewsFeedListItem]
                     if case .community = type {
@@ -193,7 +192,7 @@ extension NewsFeedViewModel {
                     items = requestItems
                     self.cursorId = requestCursorId
                 }
-                                
+
                 // only remove mutes and blocks in remote feeds.
                 let newItems: [NewsFeedListItem]
                 if case .community = type {
@@ -206,15 +205,19 @@ extension NewsFeedViewModel {
                     newItems = items.removeFiltered()
                 }
                 
-                DispatchQueue.main.async { [weak self] in
+                await MainActor.run { [weak self] in
                     guard let self else { return }
 
                     // Abort if user changed in the meantime
                     guard requestingUser == (AccountsManager.shared.currentAccount as? MastodonAcctData)?.uniqueID else { return }
-                    
-                    // always assume newest post after refresh.
-                    self.pollingReachedTop = true
-                    
+
+                    if cursorId == nil {
+                        self.isLoadMoreEnabled = false
+                        self.showEmpty(forType: currentType)
+                    } else {
+                        self.hideEmpty(forType: currentType)
+                    }
+
                     self.set(withItems: newItems, forType: currentType)
                     self.state = .success
                     self.hideLoader(forType: currentType)
