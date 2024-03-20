@@ -656,10 +656,13 @@ extension NewsFeedViewModel {
         if self.pollingTask == nil || self.pollingTask!.isCancelled {
             self.pollingTask = Task(priority: .medium) { [weak self] in
                 guard let self else { return }
+                guard !Task.isCancelled else { return }
+                
                 var fetchingNewItems = false
 
                 try await self.recursiveTask(retryCount: 5, frequency: self.pollingFrequency, delay: delay) { [weak self] in
                     guard let self else { return }
+                    guard !Task.isCancelled else { return }
                                         
                     guard !fetchingNewItems else {
                         log.warning("Skipping polling task for \(type) because previous task is still fetching")
@@ -676,6 +679,9 @@ extension NewsFeedViewModel {
                     // It's OK to load newer content if overloaded though (since it's likely
                     // showing Mammoth picks at that point).
                     let showingUpdateRow = try await self.loadForYouStatus(feedType:type, forceFYCheck: forceFYCheck)
+                    
+                    guard !Task.isCancelled else { return }
+                    
                     if !showingUpdateRow || (showingUpdateRow && self.forYouStatus == .overloaded) {
 
                         if GlobalStruct.feedReadDirection == .topDown {
@@ -691,6 +697,8 @@ extension NewsFeedViewModel {
                             let fetchedItems = try await self.loadListData(type: type, fetchType: .previousPage)
                             pageToFetchLimit -= 1
                             
+                            guard !Task.isCancelled else { return }
+                            
                             if !fetchedItems.isEmpty {
                                 
                                 // Show the JumpToNow pill if the feed is old
@@ -703,13 +711,18 @@ extension NewsFeedViewModel {
                                 while fetchingNewItems && pageToFetchLimit > 0 {
                                     log.debug("Calling loadListData(previousPage) for feedType: \(type)")
                                     let fetchedItems = try await self.loadListData(type: type, fetchType: .previousPage)
+                                                                        
                                     if fetchedItems.isEmpty {
                                         break
                                     } else {
                                         pageToFetchLimit -= 1
                                     }
+                                    
+                                    guard !Task.isCancelled else { break }
                                 }
                             }
+                            
+                            guard !Task.isCancelled else { return }
                             
                             if pageToFetchLimit == 0 {
                                 await MainActor.run { [weak self] in
