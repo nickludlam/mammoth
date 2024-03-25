@@ -189,19 +189,11 @@ extension NewsFeedViewModel {
                     self.cursorId = requestCursorId
                     updateCurrentRange(newPagination: pagination)
                 } else {
-                    let (requestItems, requestCursorId) = try await currentType.fetchAll(batchName: "refresh_batch")
+                    let (requestItems, requestCursorId) = try await currentType.fetchAll(range: .limit(5) ,batchName: "refresh_batch")
                     items = requestItems
                     self.cursorId = requestCursorId
                 }
-                
-                // This should be true of paginated and unpaginated requests
-                if (self.cursorId == nil) {
-                    self.isLoadMoreEnabled = false
-                    self.showEmpty(forType: currentType)
-                } else {
-                    self.hideEmpty(forType: currentType)
-                }
-                
+                                
                 // only remove mutes and blocks in remote feeds.
                 let newItems: [NewsFeedListItem]
                 if case .community = type {
