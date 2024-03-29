@@ -301,7 +301,9 @@ extension NewsFeedViewModel {
             DispatchQueue.main.sync {
                 self.delegate?.didUpdateSnapshot(self.snapshot,
                                                  feedType: self.type,
-                                                 updateType: updateType, onCompleted: nil)
+                                                 updateType: updateType,
+                                                 scrollPosition: nil,
+                                                 onCompleted: nil)
                 completion()
             }
         }
@@ -349,7 +351,8 @@ extension NewsFeedViewModel {
                 guard let self else { return }
                 self.delegate?.didUpdateSnapshot(self.snapshot,
                                                  feedType: feedType,
-                                                 updateType: updateType) {
+                                                 updateType: updateType, 
+                                                 scrollPosition: nil) {
                 }
             }
         }
@@ -569,6 +572,7 @@ extension NewsFeedViewModel {
                         self.delegate?.didUpdateSnapshot(self.snapshot,
                                                          feedType: feedType,
                                                          updateType: .remove,
+                                                         scrollPosition: nil,
                                                          onCompleted: nil)
                     }
                 }
