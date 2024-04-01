@@ -120,7 +120,7 @@ extension NewsFeedViewModel {
                 
             // Fetch newer posts
             case .previousPage:
-                if let firstId = self.newestItemId(forType: currentType) {
+                if let firstId = await MainActor.run(body: { [weak self] in return self?.newestItemId(forType: currentType) }) {
                     
                     let items: [NewsFeedListItem]
 
@@ -130,7 +130,7 @@ extension NewsFeedViewModel {
                         self.cursorId = requestCursorId
                         updateCurrentRange(newPagination: pagination)
                     } else {
-                        let (requestItems, requestCursorId) = try await currentType.fetchAll(range: RequestRange.min(id: firstId, limit: 40), batchName: "previous-page_batch")
+                        let (requestItems, requestCursorId) = try await currentType.fetchAll(range: RequestRange.min(id: firstId, limit: 120), batchName: "previous-page_batch")
                         items = requestItems
                         self.cursorId = requestCursorId
                     }
