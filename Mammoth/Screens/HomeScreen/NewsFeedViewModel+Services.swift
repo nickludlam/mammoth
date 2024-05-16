@@ -212,6 +212,7 @@ extension NewsFeedViewModel {
                     // Abort if user changed in the meantime
                     guard requestingUser == (AccountsManager.shared.currentAccount as? MastodonAcctData)?.uniqueID else { return }
                     
+                    // always assume newest post after refresh.
                     self.pollingReachedTop = true
                     
                     self.set(withItems: newItems, forType: currentType)
@@ -656,9 +657,6 @@ extension NewsFeedViewModel {
                 guard let self else { return }
                 guard !Task.isCancelled else { return }
                 
-                await MainActor.run { [weak self] in
-                    self?.pollingReachedTop = true
-                }
                 
                 var fetchingNewItems = false
 
@@ -703,11 +701,16 @@ extension NewsFeedViewModel {
                             guard !Task.isCancelled else { return }
                             
                             if !fetchedItems.isEmpty {
-                                
-                                await MainActor.run { [weak self] in
-                                    self?.pollingReachedTop = false
+                                // if we have an update with <= 3 posts, we can assume we're still up-to-date.
+                                if fetchedItems.count <= 3 {
+                                    await MainActor.run { [weak self] in
+                                        self?.pollingReachedTop = true
+                                    }
+                                } else {
+                                    await MainActor.run { [weak self] in
+                                        self?.pollingReachedTop = false
+                                    }
                                 }
-
                                 // Show the JumpToNow pill if the feed is old
                                 if fetchedItems.count >= 40 {
                                     await MainActor.run { [weak self] in
@@ -730,6 +733,7 @@ extension NewsFeedViewModel {
                                 }
                             } else {
                                 await MainActor.run { [weak self] in
+                                    // returned posts are empty, so we can assume we're up-to-date.
                                     self?.pollingReachedTop = true
                                 }
                             }
