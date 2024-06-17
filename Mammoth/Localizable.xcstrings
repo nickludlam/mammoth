@@ -61705,6 +61705,18 @@
         }
       }
     },
+    "settings.appearance.mediaSize.fullWidth": {
+      "comment": null,
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit" : {
+            "state": "translated",
+            "value": "Full width"
+          }
+        }
+      }
+    },
     "settings.appearance.mediaSize.large": {
       "comment": null,
       "extractionState": "manual",
