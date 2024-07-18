@@ -130,71 +130,71 @@ enum NewsFeedTypes: CaseIterable, Equatable, Codable, Hashable {
         }
     }
         
-    func fetchAll(range: RequestRange = .default, batchName: String, retryCount: Int = 0) async throws -> ([NewsFeedListItem], cursorId: String?) {
+    func fetchAll(range: RequestRange = .default, batchName: String, retryCount: Int = 0) async throws -> ([NewsFeedListItem], timelinePagination: TimelinePagination?) {
         let batchName = "\(batchName)_\(Int.random(in: 0 ... 10000))"
         
         do {
             switch(self) {
             case .forYou:
-                guard let remoteFullOriginalAcct = AccountsManager.shared.currentAccount?.remoteFullOriginalAcct else {return ([], cursorId: nil)}
-                let (result, cursorId) = try await TimelineService.forYou(remoteFullOriginalAcct: remoteFullOriginalAcct, range: range)
-                return (result.enumerated().map({ .postCard(PostCardModel(status: $1, withStaticMetrics: true, instanceName: $1.serverName, batchId: batchName, batchItemIndex: $0)) }), cursorId: cursorId)
+                guard let remoteFullOriginalAcct = AccountsManager.shared.currentAccount?.remoteFullOriginalAcct else {return ([], timelinePagination: nil)}
+                let (result, timelinePagination) = try await TimelineService.forYou(remoteFullOriginalAcct: remoteFullOriginalAcct, range: range)
+                return (result.enumerated().map({ .postCard(PostCardModel(status: $1, withStaticMetrics: true, instanceName: $1.serverName, batchId: batchName, batchItemIndex: $0)) }), timelinePagination: timelinePagination)
                 
             case .following:
-                let (result, cursorId) = try await TimelineService.home(range: range)
-                return (result.enumerated().map({ .postCard(PostCardModel(status: $1, withStaticMetrics: false, batchId: batchName, batchItemIndex: $0)) }), cursorId: cursorId)
+                let (result, timelinePagination) = try await TimelineService.home(range: range)
+                return (result.enumerated().map({ .postCard(PostCardModel(status: $1, withStaticMetrics: false, batchId: batchName, batchItemIndex: $0)) }), timelinePagination: timelinePagination)
                 
             case .federated:
-                let (result, cursorId) = try await TimelineService.federated(range: range)
-                return (result.enumerated().map({ .postCard(PostCardModel(status: $1, withStaticMetrics: false, batchId: batchName, batchItemIndex: $0)) }), cursorId: cursorId)
+                let (result, timelinePagination) = try await TimelineService.federated(range: range)
+                return (result.enumerated().map({ .postCard(PostCardModel(status: $1, withStaticMetrics: false, batchId: batchName, batchItemIndex: $0)) }), timelinePagination: timelinePagination)
                 
             case .community(let name):
-                let (result, cursorId) = try await TimelineService.community(instanceName: name, type: .public, range: range)
-                return (result.enumerated().map({ .postCard(PostCardModel(status: $1, withStaticMetrics: false, instanceName: name, batchId: batchName, batchItemIndex: $0)) }), cursorId: cursorId)
+                let (result, timelinePagination) = try await TimelineService.community(instanceName: name, type: .public, range: range)
+                return (result.enumerated().map({ .postCard(PostCardModel(status: $1, withStaticMetrics: false, instanceName: name, batchId: batchName, batchItemIndex: $0)) }), timelinePagination: timelinePagination)
                 
             case .trending(let name):
-                let (result, cursorId) = try await TimelineService.community(instanceName: name, type: .trending, range: range)
-                return (result.enumerated().map({ .postCard(PostCardModel(status: $1, withStaticMetrics: false, instanceName: name, batchId: batchName, batchItemIndex: $0)) }), cursorId: cursorId)
+                let (result, timelinePagination) = try await TimelineService.community(instanceName: name, type: .trending, range: range)
+                return (result.enumerated().map({ .postCard(PostCardModel(status: $1, withStaticMetrics: false, instanceName: name, batchId: batchName, batchItemIndex: $0)) }), timelinePagination: timelinePagination)
                 
             case .hashtag(let hashtag):
-                let (result, cursorId) = try await TimelineService.tag(hashtag: hashtag.name, range: range)
-                return (result.enumerated().map({ .postCard(PostCardModel(status: $1, withStaticMetrics: false, instanceName: $1.serverName, batchId: batchName, batchItemIndex: $0)) }), cursorId: cursorId)
+                let (result, timelinePagination) = try await TimelineService.tag(hashtag: hashtag.name, range: range)
+                return (result.enumerated().map({ .postCard(PostCardModel(status: $1, withStaticMetrics: false, instanceName: $1.serverName, batchId: batchName, batchItemIndex: $0)) }), timelinePagination: timelinePagination)
                 
             case .list(let list):
-                let (result, cursorId) = try await TimelineService.list(listId: list.id, range: range)
-                return (result.enumerated().map({ .postCard(PostCardModel(status: $1, withStaticMetrics: false, instanceName: $1.serverName, batchId: batchName, batchItemIndex: $0)) }), cursorId: cursorId)
+                let (result, timelinePagination) = try await TimelineService.list(listId: list.id, range: range)
+                return (result.enumerated().map({ .postCard(PostCardModel(status: $1, withStaticMetrics: false, instanceName: $1.serverName, batchId: batchName, batchItemIndex: $0)) }), timelinePagination: timelinePagination)
                 
             case .likes:
-                let (result, cursorId) = try await TimelineService.likes(range: range)
-                return (result.enumerated().map({ .postCard(PostCardModel(status: $1, withStaticMetrics: false, batchId: batchName, batchItemIndex: $0)) }), cursorId: cursorId)
+                let (result, timelinePagination) = try await TimelineService.likes(range: range)
+                return (result.enumerated().map({ .postCard(PostCardModel(status: $1, withStaticMetrics: false, batchId: batchName, batchItemIndex: $0)) }), timelinePagination: timelinePagination)
                 
             case .bookmarks:
-                let (result, cursorId) = try await TimelineService.bookmarks(range: range)
-                return (result.enumerated().map({ .postCard(PostCardModel(status: $1, withStaticMetrics: false, batchId: batchName, batchItemIndex: $0)) }), cursorId: cursorId)
+                let (result, timelinePagination) = try await TimelineService.bookmarks(range: range)
+                return (result.enumerated().map({ .postCard(PostCardModel(status: $1, withStaticMetrics: false, batchId: batchName, batchItemIndex: $0)) }), timelinePagination: timelinePagination)
                 
             case .mentionsIn:
-                let (result, cursorId) = try await TimelineService.mentions(range: range)
+                let (result, timelinePagination) = try await TimelineService.mentions(range: range)
                 return (result.enumerated().compactMap({
                     guard let status = $1.status else { return nil }
                     let postCardData = PostCardModel(status: status, withStaticMetrics: false, batchId: batchName, batchItemIndex: $0)
                     postCardData.cursorId = $1.id
                     return .postCard(postCardData)
-                }), cursorId: cursorId)
+                }), timelinePagination: timelinePagination)
                 
             case .mentionsOut:
-                let (result, cursorId) = try await AccountService.mentionsSent(range: range)
-                return (result.enumerated().map({ .postCard(PostCardModel(status: $1, withStaticMetrics: false, batchId: batchName, batchItemIndex: $0)) }), cursorId: cursorId)
+                let (result, timelinePagination) = try await AccountService.mentionsSent(range: range)
+                return (result.enumerated().map({ .postCard(PostCardModel(status: $1, withStaticMetrics: false, batchId: batchName, batchItemIndex: $0)) }), timelinePagination: timelinePagination)
                 
             case .activity(let type):
-                let (result, cursorId) = try await TimelineService.activity(range: range, type: type)
+                let (result, timelinePagination) = try await TimelineService.activity(range: range, type: type)
                 return (result.enumerated().compactMap({
                     // Hide 'New Post' notifications of deleted posts
                     guard !($1.type == .status && $1.status == nil) else { return nil }
-                    return .activity(ActivityCardModel(notification: $1, batchId: batchName, batchItemIndex: $0)) }), cursorId: cursorId)
+                    return .activity(ActivityCardModel(notification: $1, batchId: batchName, batchItemIndex: $0)) }), timelinePagination: timelinePagination)
                 
             case .channel(let channel):
-                let (result, cursorId) = try await TimelineService.channel(channelId: channel.id, range: range)
-                return (result.enumerated().map({ .postCard(PostCardModel(status: $1, withStaticMetrics: false, instanceName: $1.serverName, batchId: batchName, batchItemIndex: $0)) }), cursorId: cursorId)
+                let (result, timelinePagination) = try await TimelineService.channel(channelId: channel.id, range: range)
+                return (result.enumerated().map({ .postCard(PostCardModel(status: $1, withStaticMetrics: false, instanceName: $1.serverName, batchId: batchName, batchItemIndex: $0)) }), timelinePagination: timelinePagination)
             }
         } catch {
             // Mastodon might return a 206 error when the feed is being regenerated.
@@ -413,7 +413,7 @@ class NewsFeedViewModel {
         
     internal var postSyncingTasks: [IndexPath: Task<Void, Error>] = [:]
     internal var forYouStatus: ForYouStatus? = nil
-    internal var cursorId: String?
+    internal var paginationPosition: TimelinePagination? // replaces cursorId and allows this to hold paginated and unpaginated response information
     
     internal var newestSectionLength: Int = 35
     internal var newItemsThreshold: Int {
@@ -507,7 +507,7 @@ class NewsFeedViewModel {
     func changeFeed(type: NewsFeedTypes) {
         guard type != self.type else { return }
         
-        self.cursorId = nil
+        self.paginationPosition = nil
         self.stopPollingListData()
         let previousType = self.type
         self.delegate?.willChangeFeed(fromType: previousType, toType: type)

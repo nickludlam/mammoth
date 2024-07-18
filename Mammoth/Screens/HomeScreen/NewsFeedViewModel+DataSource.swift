@@ -1141,50 +1141,71 @@ extension NewsFeedViewModel {
     }
     
     // First item id in the feed
-    func newestItemId(forType type: NewsFeedTypes) -> String? {
+    func requestRangeForNewerPage(forType type: NewsFeedTypes, limit: Int = 20) -> RequestRange? {
         guard let _ = self.snapshot.indexOfSection(.main) else { return nil }
-        if case .postCard(let postCard) = self.snapshot.itemIdentifiers(inSection: .main).filter({ $0.extractPostCard() != nil }).first {
-            return postCard.cursorId
+
+        if let paginationPosition = self.paginationPosition {
+            switch paginationPosition {
+            case .pagination(let pagination):
+                return pagination.previous
+            case .cursorId(let cursorId):
+                return RequestRange.min(id: cursorId, limit: limit)
+            }
         }
-        
-        if case .activity(let activity) = self.snapshot.itemIdentifiers(inSection: .main).first {
-            return activity.cursorId
-        }
-        return nil
-    }
-    
-    // Last item id in the feed
-    func oldestItemId(forType type: NewsFeedTypes) -> String? {
-        guard let _ = self.snapshot.indexOfSection(.main) else { return nil }
-        
-        if self.cursorId != nil {
-            return self.cursorId
-        }
-        
+
         if case .postCard(let postCard) = self.snapshot.itemIdentifiers(inSection: .main).last {
-            return postCard.cursorId
+            if let cursorId = postCard.cursorId {
+                return RequestRange.min(id: cursorId, limit: limit)
+            }
         }
         
         if case .activity(let activity) = self.snapshot.itemIdentifiers(inSection: .main).last {
-            return activity.cursorId
-        }
-        return nil
-    }
-    
-    // Last item id before the "load more" button
-    func lastOfTheNewestItemsId(forType type: NewsFeedTypes) -> String? {
-        if let item = self.lastItemOfTheNewestItems(forType: type) {
-            if case .postCard(let postCard) = item {
-                return postCard.cursorId
-            }
-            
-            if case .activity(let activity) = item {
-                return activity.cursorId
-            }
+            return RequestRange.min(id: activity.cursorId, limit: limit)
         }
         
         return nil
     }
+    
+    // Last item id in the feed, i.e. going back in time
+    func requestRangeForOlderPage(forType type: NewsFeedTypes, limit: Int = 20) -> RequestRange? {
+        guard let _ = self.snapshot.indexOfSection(.main) else { return nil }
+        
+        if let paginationPosition = self.paginationPosition {
+            switch paginationPosition {
+            case .pagination(let pagination):
+                return pagination.next
+            case .cursorId(let cursorId):
+                return RequestRange.max(id: cursorId, limit: limit)
+            }
+        }
+
+        if case .postCard(let postCard) = self.snapshot.itemIdentifiers(inSection: .main).last {
+            if let cursorId = postCard.cursorId {
+                return RequestRange.max(id: cursorId, limit: limit)
+            }
+        }
+        
+        if case .activity(let activity) = self.snapshot.itemIdentifiers(inSection: .main).last {
+            return RequestRange.max(id: activity.cursorId, limit: limit)
+        }
+
+        return nil
+    }
+    
+//    // Last item id before the "load more" button
+//    func lastOfTheNewestItemsId(forType type: NewsFeedTypes) -> String? {
+//        if let item = self.lastItemOfTheNewestItems(forType: type) {
+//            if case .postCard(let postCard) = item {
+//                return postCard.cursorId
+//            }
+//            
+//            if case .activity(let activity) = item {
+//                return activity.cursorId
+//            }
+//        }
+//        
+//        return nil
+//    }
     
     // Last item before the "load more" button
     func lastItemOfTheNewestItems(forType type: NewsFeedTypes) -> NewsFeedListItem? {
