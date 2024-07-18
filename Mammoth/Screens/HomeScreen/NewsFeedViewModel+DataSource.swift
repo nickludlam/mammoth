@@ -1192,21 +1192,6 @@ extension NewsFeedViewModel {
         return nil
     }
     
-//    // Last item id before the "load more" button
-//    func lastOfTheNewestItemsId(forType type: NewsFeedTypes) -> String? {
-//        if let item = self.lastItemOfTheNewestItems(forType: type) {
-//            if case .postCard(let postCard) = item {
-//                return postCard.cursorId
-//            }
-//            
-//            if case .activity(let activity) = item {
-//                return activity.cursorId
-//            }
-//        }
-//        
-//        return nil
-//    }
-    
     // Last item before the "load more" button
     func lastItemOfTheNewestItems(forType type: NewsFeedTypes) -> NewsFeedListItem? {
         if let loadMoreIndexPath = self.getIndexPathForItem(item: .loadMore) {
