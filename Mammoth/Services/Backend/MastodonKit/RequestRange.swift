@@ -51,6 +51,16 @@ extension RequestRange {
             return nil
         }
     }
+    
+    // Can we compare and update this range with the new range?
+    func isComparableWith(_ other: RequestRange) -> Bool {
+        switch (self, other) {
+        case (.max, .max), (.since, .since), (.min, .min):
+            return true
+        default:
+            return false
+        }
+    }
 }
 
 extension RequestRange: Comparable {
@@ -68,13 +78,27 @@ extension RequestRange: Comparable {
 
     public static func < (lhs: RequestRange, rhs: RequestRange) -> Bool {
         // guard that both lhs and rhs have the same type
-        let lhsVal = requestRangeIdToIntegers(lhs)
-        let rhsVal = requestRangeIdToIntegers(rhs)
-
-        return lhsVal < rhsVal
+        return requestRangeIdToIntegers(lhs) < requestRangeIdToIntegers(rhs)
     }
 }
 
 extension RequestRange: Equatable {}
 
 extension RequestRange: Codable {}
+
+extension RequestRange: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case .max(let id, let limit):
+            return "RequestRange - max ID: \(id), limit: \(limit ?? 0)"
+        case .since(let id, let limit):
+            return "RequestRange - since ID: \(id), limit: \(limit ?? 0)"
+        case .min(let id, let limit):
+            return "RequestRange - min ID: \(id), limit: \(limit ?? 0)"
+        case .limit(let limit):
+            return "RequestRange - limit: \(limit)"
+        case .default:
+            return "RequestRange - default"
+        }
+    }
+}

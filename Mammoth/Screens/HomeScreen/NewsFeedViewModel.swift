@@ -130,7 +130,7 @@ enum NewsFeedTypes: CaseIterable, Equatable, Codable, Hashable {
         }
     }
         
-    func fetchAll(range: RequestRange = .default, batchName: String, retryCount: Int = 0) async throws -> ([NewsFeedListItem], timelinePagination: TimelinePagination?) {
+    func fetchAll(range: RequestRange = .default, batchName: String, retryCount: Int = 0) async throws -> ([NewsFeedListItem], timelinePagination: HybridPagination?) {
         let batchName = "\(batchName)_\(Int.random(in: 0 ... 10000))"
         
         do {
@@ -375,9 +375,7 @@ enum NewsFeedTypes: CaseIterable, Equatable, Codable, Hashable {
     
     var shouldPollForListData: Bool {
         switch self {
-        case .activity, .mentionsIn:
-            return true
-        case .mentionsOut:
+        case .activity, .mentionsIn, .mentionsOut, .bookmarks, .likes:
             return false
         default:
             return true
@@ -413,7 +411,39 @@ class NewsFeedViewModel {
         
     internal var postSyncingTasks: [IndexPath: Task<Void, Error>] = [:]
     internal var forYouStatus: ForYouStatus? = nil
-    internal var paginationPosition: TimelinePagination? // replaces cursorId and allows this to hold paginated and unpaginated response information
+    internal var paginationPosition: HybridPagination? = nil // replaces the old cursorId and allows us to store explicit next/previous pages
+    internal var paginationPositionFeedType: NewsFeedTypes? = nil
+    
+    func updatePaginationPosition(_ newPosition: HybridPagination?, feedType: NewsFeedTypes, overwrite: Bool = false) {
+        // if the current is nil, just set it
+        guard let newPosition = newPosition else {
+            self.paginationPosition = newPosition
+            return
+        }
+        
+        // if paginationPositionFeedType is not nil and does not equal feedType, just set the value directly
+        // this is true for the activity feed where we have a number of tabs to swap between different filters
+        if self.paginationPositionFeedType != feedType {
+            debugPrint("current pagination position feed type \(String(describing: self.paginationPositionFeedType)) does not match new feed type \(feedType), setting new position directly.")
+            self.paginationPositionFeedType = feedType
+            self.paginationPosition = newPosition
+            return
+        }
+        
+        // if the current is not nil, update it
+        if !overwrite, let current = self.paginationPosition {
+            do {
+                try self.paginationPosition = current.updateWith(newPosition)
+            } catch {
+                // Handle this
+                log.error("Error updating pagination position: \(error)")
+            }
+        } else {
+            self.paginationPosition = newPosition
+        }
+        
+        debugPrint("Updated pagination position for \(feedType): \(String(describing: self.paginationPosition))")
+    }
     
     internal var newestSectionLength: Int = 35
     internal var newItemsThreshold: Int {

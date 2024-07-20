@@ -15,13 +15,13 @@ enum TimelineType {
 
 struct TimelineService {
     
-    static func home(range: RequestRange = .default) async throws -> ([Status], timelinePagination: TimelinePagination?) {
+    static func home(range: RequestRange = .default) async throws -> ([Status], timelinePagination: HybridPagination?) {
         let request = Timelines.home(range: range)
         let result = try await ClientService.runRequest(request: request)
-        return (result.filter({ $0.visibility != .direct }), timelinePagination: result.last?.id.map(TimelinePagination.cursorId))
+        return (result.filter({ $0.visibility != .direct }), timelinePagination: result.last?.id.map(HybridPagination.cursorId))
     }
     
-    static func community(instanceName: String, type: TimelineType = .public, range: RequestRange = .default) async throws -> ([Status], timelinePagination: TimelinePagination?) {
+    static func community(instanceName: String, type: TimelineType = .public, range: RequestRange = .default) async throws -> ([Status], timelinePagination: HybridPagination?) {
         
         if let currentAccount = AccountsManager.shared.currentAccount as? MastodonAcctData {
             let client = Client(
@@ -33,47 +33,47 @@ struct TimelineService {
             case .public:
                 let request = Timelines.public(local: true, range: range)
                 let result = try await ClientService.runRequest(client: client, request: request)
-                return (result.filter({ $0.visibility != .direct }), timelinePagination: result.last?.id.map(TimelinePagination.cursorId))
+                return (result.filter({ $0.visibility != .direct }), timelinePagination: result.last?.id.map(HybridPagination.cursorId))
             case .trending:
                 let request = Statuses.trendingStatuses(range: range)
                 let result = try await ClientService.runRequest(client: client, request: request)
-                return (result.filter({ $0.visibility != .direct }), timelinePagination: result.last?.id.map(TimelinePagination.cursorId))
+                return (result.filter({ $0.visibility != .direct }), timelinePagination: result.last?.id.map(HybridPagination.cursorId))
             }
         }
  
         return ([], timelinePagination: nil)
     }
     
-    static func tag(hashtag: String, range: RequestRange = .default) async throws -> ([Status], timelinePagination: TimelinePagination?) {
+    static func tag(hashtag: String, range: RequestRange = .default) async throws -> ([Status], timelinePagination: HybridPagination?) {
         let request = Timelines.tag(hashtag, local: false, range: range)
         let result = try await ClientService.runRequest(request: request)
-        return (result.filter({ $0.visibility != .direct }), timelinePagination: result.last?.id.map(TimelinePagination.cursorId))
+        return (result.filter({ $0.visibility != .direct }), timelinePagination: result.last?.id.map(HybridPagination.cursorId))
     }
     
-    static func list(listId: String, range: RequestRange = .default) async throws -> ([Status], timelinePagination: TimelinePagination?) {
+    static func list(listId: String, range: RequestRange = .default) async throws -> ([Status], timelinePagination: HybridPagination?) {
         let request = Timelines.lists(listId: listId, range: range)
         let result = try await ClientService.runRequest(request: request)
-        return (result.filter({ $0.visibility != .direct }), timelinePagination: result.last?.id.map(TimelinePagination.cursorId))
+        return (result.filter({ $0.visibility != .direct }), timelinePagination: result.last?.id.map(HybridPagination.cursorId))
     }
     
-    static func channel(channelId: String, range: RequestRange = .default) async throws -> ([Status], timelinePagination: TimelinePagination?) {
+    static func channel(channelId: String, range: RequestRange = .default) async throws -> ([Status], timelinePagination: HybridPagination?) {
         let request = Timelines.channel(channelId: channelId, range: range)
         let result = try await ClientService.runMothRequest(request: request)
-        return (result.filter({ $0.visibility != .direct }), timelinePagination: result.last?.id.map(TimelinePagination.cursorId))
+        return (result.filter({ $0.visibility != .direct }), timelinePagination: result.last?.id.map(HybridPagination.cursorId))
     }
     
-    static func federated(range: RequestRange = .default) async throws -> ([Status], timelinePagination: TimelinePagination?) {
+    static func federated(range: RequestRange = .default) async throws -> ([Status], timelinePagination: HybridPagination?) {
         let request = Timelines.public(local: false, range: range)
         let result = try await ClientService.runRequest(request: request)
-        return (result.filter({ $0.visibility != .direct }), timelinePagination: result.last?.id.map(TimelinePagination.cursorId))
+        return (result.filter({ $0.visibility != .direct }), timelinePagination: result.last?.id.map(HybridPagination.cursorId))
     }
     
     /// Fetches Statuses from Moth.social's For You Timeline
     /// Requires full original account
-    static func forYou(remoteFullOriginalAcct: String, range: RequestRange = .default) async throws -> ([Status], timelinePagination: TimelinePagination?) {
+    static func forYou(remoteFullOriginalAcct: String, range: RequestRange = .default) async throws -> ([Status], timelinePagination: HybridPagination?) {
         let request = Timelines.forYouV4(remoteFullOriginalAcct: remoteFullOriginalAcct, range: range)
         let result = try await ClientService.runMothRequest(request: request)
-        return (result.filter({ $0.visibility != .direct }), timelinePagination: result.last?.id.map(TimelinePagination.cursorId))
+        return (result.filter({ $0.visibility != .direct }), timelinePagination: result.last?.id.map(HybridPagination.cursorId))
       }
     
     /// Fetches For You Feed Type
@@ -97,28 +97,29 @@ struct TimelineService {
         return result
     }
     
-    static func likes(range: RequestRange = .default) async throws -> ([Status], timelinePagination: TimelinePagination?) {
+    static func likes(range: RequestRange = .default) async throws -> ([Status], timelinePagination: HybridPagination?) {
         let request = Favourites.all(range: range)
         let (result, pagination) = try await ClientService.runPaginatedRequest(request: request)
-        return (result, timelinePagination: pagination.map(TimelinePagination.pagination))
+        return (result, timelinePagination: pagination.map(HybridPagination.pagination))
     }
 
-    static func bookmarks(range: RequestRange = .default) async throws -> ([Status], timelinePagination: TimelinePagination?) {
+    static func bookmarks(range: RequestRange = .default) async throws -> ([Status], timelinePagination: HybridPagination?) {
         let request = Bookmarks.bookmarks(range: range)
         let (result, pagination) = try await ClientService.runPaginatedRequest(request: request)
-        return (result, timelinePagination: pagination.map(TimelinePagination.pagination))
+        return (result, timelinePagination: pagination.map(HybridPagination.pagination))
     }
     
-    static func mentions(range: RequestRange = .default) async throws -> ([Notificationt], timelinePagination: TimelinePagination?) {
+    static func mentions(range: RequestRange = .default) async throws -> ([Notificationt], timelinePagination: HybridPagination?) {
         let request = Notifications.all(range: range, typesToExclude: [.favourite, .reblog, .follow, .follow_request, .poll, .update, .status])
         let result = try await ClientService.runRequest(request: request)
         
         let lastId = result.last?.id // TODO: Not sure why this needs explicit statements
-        let timelinePagination = lastId.map(TimelinePagination.cursorId)
+        let timelinePagination = lastId.map(HybridPagination.cursorId)
         return (result, timelinePagination: timelinePagination)
     }
     
-    static func activity(range: RequestRange = .default, type: NotificationType?) async throws -> ([Notificationt], timelinePagination: TimelinePagination?) {
+    static func activity(range: RequestRange = .default, type: NotificationType?) async throws -> ([Notificationt], timelinePagination: HybridPagination?) {
+        debugPrint("activity requested with range \(range) and type \(String(describing: type))")
         let excludedTypes: [NotificationType] = NotificationType.allCases.filter({
             switch type {
             case .favourite:
@@ -136,9 +137,7 @@ struct TimelineService {
         let request = Notifications.all(range: range, typesToExclude: excludedTypes)
         let result = try await ClientService.runRequest(request: request)
         
-        let lastId = result.last?.id // TODO: Not sure why this needs explicit statements
-        let timelinePagination = lastId.map(TimelinePagination.cursorId)
-
+        let timelinePagination = (result.last?.id).map(HybridPagination.cursorId)
         return (result, timelinePagination: timelinePagination)
     }
 }

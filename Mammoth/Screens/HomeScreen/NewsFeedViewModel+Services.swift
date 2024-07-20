@@ -40,7 +40,8 @@ extension NewsFeedViewModel {
                 if let requestRange = await MainActor.run(body: { [weak self] in return self?.requestRangeForOlderPage(forType: currentType, limit: 20)}) {
                 
                     let (items, timelinePagination) = try await currentType.fetchAll(range: requestRange, batchName: "next-page_batch")
-                    
+                    debugPrint("loadListDataMastodon.nextPage() called fetchAll() with range \(requestRange) for feedType \(currentType) done. items.count: \(items.count) and timelinePagination: \(String(describing: timelinePagination?.description))")
+
                     // only remove mutes and blocks in remote feeds.
                     let newItems: [NewsFeedListItem]
                     if case .community = type {
@@ -58,15 +59,14 @@ extension NewsFeedViewModel {
 
                         // Abort if user changed in the meantime
                         guard requestingUser == (AccountsManager.shared.currentAccount as? MastodonAcctData)?.uniqueID else { return [] }
-                        
-                        // Have we hit the end?
-                        if let timelinePagination = timelinePagination {
-                            self.paginationPosition = timelinePagination
-                        } else {
+                        self.updatePaginationPosition(timelinePagination, feedType: currentType)
+
+                        // Call requestRangeForOlderPage() after setting self.paginationPosition because it uses the HybridPagination
+                        // to figure out whether there's any additional data we could load
+                        if self.requestRangeForOlderPage(forType: currentType, limit: 20) == nil {
                             self.isLoadMoreEnabled = false
-                            self.paginationPosition = nil
                         }
-                                                
+                        
                         if let current = self.listData.forType(type: currentType) {
                             let currentIds = current.compactMap({ $0.extractUniqueId() })
                             let uniqueNewItems = newItems.filter({ !currentIds.contains($0.extractUniqueId() ?? "") }).removingDuplicates()
@@ -109,10 +109,10 @@ extension NewsFeedViewModel {
             // Fetch newer posts
             case .previousPage:
                 
-                if let requestRange = await MainActor.run(body: { [weak self] in return self?.requestRangeForNewerPage(forType: currentType, limit: 100) }) {
+                if let requestRange = await MainActor.run(body: { [weak self] in return self?.requestRangeForNewerPage(forType: currentType, limit: 40) }) {
                     let (items, timelinePagination) = try await currentType.fetchAll(range: requestRange, batchName: "previous-page_batch")
-                    
-                    self.paginationPosition = timelinePagination
+                    debugPrint("loadListDataMastodon.previousPage() called fetchAll() with range \(requestRange) for feedType \(currentType) done. items.count: \(items.count) and timelinePagination: \(String(describing: timelinePagination?.description))")
+                    self.updatePaginationPosition(timelinePagination, feedType: currentType)
 
                     // only remove mutes and blocks in remote feeds.
                     let newItems: [NewsFeedListItem]
@@ -131,7 +131,6 @@ extension NewsFeedViewModel {
 
                         // Abort if user changed in the meantime
                         guard requestingUser == (AccountsManager.shared.currentAccount as? MastodonAcctData)?.uniqueID else { return [] }
-
 
                         if let current = self.listData.forType(type: currentType) {
                             let currentIds = current.compactMap({ $0.extractUniqueId() })
@@ -161,9 +160,8 @@ extension NewsFeedViewModel {
                 self.state = .loading
                 self.isLoadMoreEnabled = true
                 
-                let (items, timelinePagination) = try await currentType.fetchAll(range: .limit(5) ,batchName: "refresh_batch")
-                
-                self.paginationPosition = timelinePagination
+                let (items, timelinePagination) = try await currentType.fetchAll(batchName: "refresh_batch")
+                debugPrint("loadListDataMastodon.refresh() called fetchAll() for feedType \(currentType) done. items.count: \(items.count) and timelinePagination: \(String(describing: timelinePagination?.description))")
 
                 // only remove mutes and blocks in remote feeds.
                 let newItems: [NewsFeedListItem]
@@ -192,8 +190,10 @@ extension NewsFeedViewModel {
                     
                     // always assume newest post after refresh.
                     self.pollingReachedTop = true
-                    
                     self.set(withItems: newItems, forType: currentType)
+                    // We overwrite any existing pagination information as we're not merging new items into the existing set, we're replacing it.
+                    self.updatePaginationPosition(timelinePagination, feedType: currentType, overwrite: true)
+
                     self.state = .success
                     self.hideLoader(forType: currentType)
                 }
@@ -357,8 +357,8 @@ extension NewsFeedViewModel {
             let requestingUser = (AccountsManager.shared.currentAccount as? MastodonAcctData)?.uniqueID
             
             let (items, timelinePagination) = try await feedType.fetchAll(range: .limit(60), batchName: "latest_batch")
-            
-            self.paginationPosition = timelinePagination
+            debugPrint("loadLatest() called fetchAll() for feedType \(feedType) done. items.count: \(items.count) and timelinePagination: \(String(describing: timelinePagination?.description))")
+            self.updatePaginationPosition(timelinePagination, feedType: feedType)
 
             // only remove mutes and blocks in remote feeds.
             let newItems: [NewsFeedListItem]

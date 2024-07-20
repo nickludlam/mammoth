@@ -39,3 +39,9 @@ extension Pagination {
 // MARK: - Equatable
 
 extension Pagination: Equatable {}
+
+extension Pagination: CustomStringConvertible {
+    public var description: String {
+        return "Pagination - next: \(next?.description ?? "nil"), previous: \(previous?.description ?? "nil")"
+    }
+}

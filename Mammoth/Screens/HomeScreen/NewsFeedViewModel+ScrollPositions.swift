@@ -63,8 +63,6 @@ internal struct NewsFeedScrollPositions {
     var trending: [String: NewsFeedScrollPosition] = [:]
     var hashtag: [String: NewsFeedScrollPosition] = [:]
     var list: [String: NewsFeedScrollPosition] = [:]
-    var likes: NewsFeedScrollPosition = NewsFeedScrollPosition()
-    var bookmarks: NewsFeedScrollPosition = NewsFeedScrollPosition()
     var mentionsIn: NewsFeedScrollPosition = NewsFeedScrollPosition()
     var mentionsOut: NewsFeedScrollPosition = NewsFeedScrollPosition()
     var activity: [String: NewsFeedScrollPosition] = [:]
@@ -89,9 +87,9 @@ internal struct NewsFeedScrollPositions {
         case .list(let data):
             list[data.id] = position
         case .likes:
-            likes = NewsFeedScrollPosition()
+            return NewsFeedScrollPosition() // Setting is disabled, as this is a paginated API endpoint
         case .bookmarks:
-            bookmarks = NewsFeedScrollPosition()
+            return NewsFeedScrollPosition() // Setting is disabled, as this is a paginated API endpoint
         case .mentionsIn:
             mentionsIn = position
         case .mentionsOut:
@@ -122,9 +120,9 @@ internal struct NewsFeedScrollPositions {
         case .list(let data):
             return list[data.id] ?? NewsFeedScrollPosition()
         case .likes:
-            return likes
+            return NewsFeedScrollPosition()
         case .bookmarks:
-            return bookmarks
+            return NewsFeedScrollPosition()
         case .mentionsIn:
             return mentionsIn
         case .mentionsOut:
@@ -141,6 +139,11 @@ internal struct NewsFeedScrollPositions {
 extension NewsFeedViewModel {
     @discardableResult
     func setScrollPosition(model: NewsFeedListItem?, offset: Double, forFeed type: NewsFeedTypes) -> NewsFeedScrollPosition {
+        // Bypass for the endpoints that use pagination
+        if isDisabled(forFeed: type) {
+            return NewsFeedScrollPosition()
+        }
+        
         let position = self.scrollPositions.setPosition(model: model, offset: offset, forFeed: type)
         
         let items = self.listData.forType(type: type)
@@ -150,6 +153,14 @@ extension NewsFeedViewModel {
     }
     
     func getScrollPosition(forFeed type: NewsFeedTypes) -> NewsFeedScrollPosition {
+        if isDisabled(forFeed: type) {
+            return NewsFeedScrollPosition()
+        }
+
         return self.scrollPositions.getPosition(forType: type)
+    }
+    
+    internal func isDisabled(forFeed type: NewsFeedTypes) -> Bool {
+        return type == .likes || type == .bookmarks
     }
 }

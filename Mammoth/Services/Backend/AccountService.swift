@@ -245,7 +245,7 @@ struct AccountService {
         }
     }
     
-    static func mentionsSent(range: RequestRange = .default) async throws -> ([Status], timelinePagination: TimelinePagination?) {
+    static func mentionsSent(range: RequestRange = .default) async throws -> ([Status], timelinePagination: HybridPagination?) {
         guard let current = AccountsManager.shared.currentAccount as? MastodonAcctData else { throw NSError(domain: "Invalid account", code: 400) }
         let result = try await AccountService.statuses(userId: current.account.id, excludeReplies: false, excludeReblogs: true, range: range)
         let filtered = result.filter({
@@ -262,7 +262,7 @@ struct AccountService {
             return !$0.mentions.isEmpty
         })
         
-        return (filtered, timelinePagination: result.last?.id.map(TimelinePagination.cursorId))
+        return (filtered, timelinePagination: result.last?.id.map(HybridPagination.cursorId))
     }
     
     static func updateDisplayName(displayName: String) async throws -> Account {
