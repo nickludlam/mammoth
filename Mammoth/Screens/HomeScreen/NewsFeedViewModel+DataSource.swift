@@ -1144,22 +1144,26 @@ extension NewsFeedViewModel {
     func requestRangeForNewerPage(forType type: NewsFeedTypes, limit: Int = 20) -> RequestRange? {
         guard let _ = self.snapshot.indexOfSection(.main) else { return nil }
 
+        // First see if we have a paginationPosition set, and use that if possible
         if let paginationPosition = self.paginationPosition {
             switch paginationPosition {
-            case .pagination(let pagination):
+            case .linkHeader(let pagination):
                 return pagination.previous
-            case .cursorId(let cursorId):
-                return RequestRange.min(id: cursorId, limit: limit)
+            case .derivedRange(let firstId, let lastId):
+                guard let firstId = firstId else { return nil }
+                return RequestRange.min(id: firstId, limit: limit)
             }
         }
 
-        if case .postCard(let postCard) = self.snapshot.itemIdentifiers(inSection: .main).last {
+        // Then fall back to finding the first cursorId of our stored items
+        if case .postCard(let postCard) = self.snapshot.itemIdentifiers(inSection: .main).filter({ $0.extractPostCard() != nil }).first {
             if let cursorId = postCard.cursorId {
                 return RequestRange.min(id: cursorId, limit: limit)
             }
         }
         
-        if case .activity(let activity) = self.snapshot.itemIdentifiers(inSection: .main).last {
+        // Same as above, but with an activity item instead of a postcard
+        if case .activity(let activity) = self.snapshot.itemIdentifiers(inSection: .main).first {
             return RequestRange.min(id: activity.cursorId, limit: limit)
         }
         
@@ -1172,10 +1176,11 @@ extension NewsFeedViewModel {
         
         if let paginationPosition = self.paginationPosition {
             switch paginationPosition {
-            case .pagination(let pagination):
+            case .linkHeader(let pagination):
                 return pagination.next
-            case .cursorId(let cursorId):
-                return RequestRange.max(id: cursorId, limit: limit)
+            case .derivedRange(let firstId, let lastId):
+                guard let lastId = lastId else { return nil }
+                return RequestRange.max(id: lastId, limit: limit)
             }
         }
 

@@ -262,7 +262,7 @@ struct AccountService {
             return !$0.mentions.isEmpty
         })
         
-        return (filtered, timelinePagination: result.last?.id.map(HybridPagination.cursorId))
+        return (filtered, timelinePagination: HybridPagination.derivedRange(result.first?.id, result.last?.id))
     }
     
     static func updateDisplayName(displayName: String) async throws -> Account {

@@ -8,27 +8,28 @@
 
 import Foundation
 
-// This is a union of a paginated (Link header) response and a cursorId, specifically used in the TimelineService
+// This is a union of a linkHeader (API responses with the Link header ) response and a min/max range
+// constructed by examining the contents of the objects returned. This is used in TimelineService
 // as this mixes unpaginated requests which can arbitrarily have a RequestRange constructed from
 // any Status item, and feeds like bookmarks and favourites which must explicitly use the pagination
-// data returned in the header of API responses, thus this pagination data needs storing in this enum
+// data returned in the header of API responses
 
 enum HybridPaginationError: Error {
     case updateWithIncompatibleTypes
 }
 
 enum HybridPagination {
-    case cursorId(String)
-    case pagination(Pagination)
+    case derivedRange(String?, String?) // firstId, lastId from results - first should have a higher numeric value
+    case linkHeader(Pagination)
 }
 
 extension HybridPagination: CustomStringConvertible {
     var description: String {
         switch self {
-        case .cursorId(let id):
-            return "HybridPagination - cursor ID: \(id)"
-        case .pagination(let pagination):
-            return "HybridPagination - pagination: \(pagination)"
+        case .derivedRange(let firstId, let lastId):
+            return "HybridPagination.derivedRange firstId: \(String(describing: firstId)), lastId: \(String(describing: lastId))"
+        case .linkHeader(let pagination):
+            return "HybridPagination.pagination: \(pagination)"
         }
     }
 }
@@ -38,18 +39,18 @@ extension HybridPagination: CustomStringConvertible {
 extension HybridPagination {
     func updateWith(_ other: HybridPagination) throws -> HybridPagination {
         switch self {
-        case .cursorId(_):
+        case .derivedRange(_, _):
             switch other {
-            case .cursorId(let otherCursorId):
-                return .cursorId(otherCursorId)
-            case .pagination(_):
+            case .derivedRange(let otherFirstId, let otherLastId):
+                return .derivedRange(otherFirstId, otherLastId)
+            case .linkHeader(_):
                 throw HybridPaginationError.updateWithIncompatibleTypes
             }
-        case .pagination(_):
+        case .linkHeader(_):
             switch other {
-            case .cursorId(_):
+            case .derivedRange(_, _):
                 throw HybridPaginationError.updateWithIncompatibleTypes
-            case .pagination(let otherPagination):
+            case .linkHeader(let otherPagination):
                 return try self.extendWithPagination(otherPagination)
             }
         }
@@ -58,7 +59,7 @@ extension HybridPagination {
     // As we page through the results, keep updating next and previous with the lowest and highest values
     func extendWithPagination(_ newPagination: Pagination) throws -> HybridPagination {
         // throw if self is not a pagination type
-        guard case .pagination(let currentPagination) = self else {
+        guard case .linkHeader(let currentPagination) = self else {
             throw HybridPaginationError.updateWithIncompatibleTypes
         }
         
@@ -75,12 +76,12 @@ extension HybridPagination {
         }
         
         if let currentPaginationPrevious = currentPagination.previous, let newPaginationPrevious = newPagination.previous {
-            // Same as above, a pevious range should have a higher since_id/max_id, so if our current is higher than the new, restore our current
+            // Same as above, a pevious range should have a higher since_id/min_id, so if our current is higher than the new, restore our current
             if currentPaginationPrevious.isComparableWith(newPaginationPrevious) && currentPaginationPrevious > newPaginationPrevious {
                 updatedPrevious = currentPaginationPrevious
             }
         }
         
-        return .pagination(Pagination(next: updatedNext, previous: updatedPrevious))
+        return .linkHeader(Pagination(next: updatedNext, previous: updatedPrevious))
     }
 }
